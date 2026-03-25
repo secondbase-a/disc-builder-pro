@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Disc Builder Pro</title>
+
+<style>
+body{
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+background:#f5f7fa;
+margin:0;
+padding-bottom:180px;
+font-size:16px;
+}
+
+.container{
+max-width:700px;
+margin:auto;
+padding:18px;
+}
+
+h2{
+margin-bottom:10px;
+}
+
+.inputCard{
+background:white;
+padding:12px;
+border-radius:10px;
+box-shadow:0 1px 4px rgba(0,0,0,0.08);
+margin-bottom:18px;
+}
+
+.row{
+display:flex;
+gap:8px;
+margin-top:6px;
+flex-wrap:wrap;
+}
+
+label{
+flex:0 0 90px;
+font-weight:600;
+}
+
+input,select{
+flex:1;
+padding:6px;
+border:1px solid #ddd;
+border-radius:6px;
+}
+
+button{
+padding:6px 10px;
+border:none;
+background:#1976d2;
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+.card{
+background:white;
+padding:12px;
+margin:6px 0;
+border-radius:10px;
+box-shadow:0 1px 4px rgba(0,0,0,0.08);
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.left{
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.program{
+display:flex;
+flex-direction:column;
+}
+
+.controls{
+display:flex;
+gap:6px;
+align-items:center;
+}
+
+#folderTabs{
+margin-bottom:10px;
+display:flex;
+gap:8px;
+flex-wrap:wrap;
+align-items: center;
+}
+
+.folder-group {
+display: flex;
+align-items: center;
+background: #eee;
+border-radius: 6px;
+cursor: grab;
+user-select: none;
+transition: transform 0.1s;
+}
+
+.folder-group:active {
+cursor: grabbing;
+}
+
+.folder-group.dragging {
+opacity: 0.5;
+transform: scale(0.95);
+}
+
+.folder-group button.tab-btn {
+padding: 4px 12px;
+background: #888;
+color: white;
+border: none;
+border-radius: 6px;
+pointer-events: none;
+}
+
+.folder-group.active button.tab-btn {
+background: #1976d2;
+}
+
+.folder-group.fixed {
+cursor: default;
+opacity: 0.8;
+}
+
+.delFolderBtn {
+background: #ff5252 !important;
+font-size: 12px;
+height: 30px;
+}
+
+.listHeader {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-top: 20px;
+}
+
+.bulkDeleteBtn {
+background: #666;
+font-size: 12px;
+}
+
+.bottomBar{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:white;
+padding:14px;
+box-shadow:0 -1px 5px rgba(0,0,0,0.12);
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+.barContainer{
+width:80%;
+margin-top: 10px;
+display: flex;
+gap: 10px;
+align-items: center;
+}
+
+.bar{
+flex: 1;
+height:20px;
+background:#ddd;
+border-radius:8px;
+overflow:hidden;
+position: relative;
+}
+
+.fill{
+height:100%;
+width:0%;
+background:#4caf50;
+transition:width 0.2s;
+}
+
+#marks {
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+pointer-events: none;
+}
+
+.resetBtn {
+background: #f44336;
+font-size: 11px;
+padding: 4px 8px;
+white-space: nowrap;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Disc Builder Pro</h2>
+
+<div class="inputCard">
+<b>番組追加</b>
+<div class="row">
+<label>放送日</label>
+<input id="date" type="date">
+</div>
+
+<div class="row">
+<label>タイトル</label>
+<input id="title" list="titleOptions" placeholder="必須入力">
+<datalist id="titleOptions"></datalist>
+</div>
+
+<div class="row">
+<label>Ch</label>
+<input id="ch" list="chOptions" placeholder="TX, NTVなど">
+<datalist id="chOptions"></datalist>
+
+<label>時間</label>
+<input id="time" placeholder="23:00">
+</div>
+
+<div class="row">
+<label>録画モード</label>
+<input id="mode" list="modeOptions" placeholder="DR, 3xなど">
+<datalist id="modeOptions"></datalist>
+
+<label>容量</label>
+<input id="size" type="number" step="0.1" placeholder="必須入力">
+</div>
+
+<button id="addBtn" onclick="addItem()">追加</button>
+</div>
+
+
+<div class="inputCard">
+<b>フォルダ作成</b>
+<div class="row">
+<input id="newFolder" placeholder="フォルダ名">
+<button onclick="createFolder()">作成</button>
+</div>
+</div>
+
+<div id="folderTabs"></div>
+
+<div class="listHeader">
+<h3>番組リスト</h3>
+<button class="bulkDeleteBtn" onclick="bulkDelete()">このリストを全削除</button>
+</div>
+
+<div id="listContainer"></div>
+
+</div>
+
+
+<div class="bottomBar">
+Disc Capacity
+<input id="capacity" type="number" value="25" style="width:60px" oninput="updateBar()">GB
+
+<div class="barContainer">
+<div class="bar">
+<div id="fill" class="fill"></div>
+<div id="marks"></div>
+</div>
+<button class="resetBtn" onclick="allUncheck()">全解除</button>
+</div>
+
+<div id="capacityText" style="margin-top: 5px;"></div>
+</div>
+
+
+<script>
+
+let items = JSON.parse(localStorage.getItem("items")) || [];
+let folders = JSON.parse(localStorage.getItem("folders")) || ["未分類"];
+let currentFolder = folders[0];
+let dragStartIndex = null;
+
+
+function save(){
+localStorage.setItem("items",JSON.stringify(items));
+localStorage.setItem("folders",JSON.stringify(folders));
+}
+
+
+function createFolder(){
+let name=document.getElementById("newFolder").value.trim();
+if(!name) return;
+if(!folders.includes(name)){
+folders.push(name);
+}
+document.getElementById("newFolder").value="";
+save();
+render();
+}
+
+
+function deleteCurrentFolder() {
+if (currentFolder === "未分類") return alert("デフォルトフォルダは削除できません。");
+
+const count = items.filter(i => i.folder === currentFolder).length;
+if (count > 0) {
+if (!confirm(`フォルダ「${currentFolder}」には${count}件の番組があります。すべて削除してフォルダを消しますか？`)) return;
+items = items.filter(i => i.folder !== currentFolder);
+} else {
+if (!confirm(`フォルダ「${currentFolder}」を削除しますか？`)) return;
+}
+
+folders = folders.filter(f => f !== currentFolder);
+currentFolder = folders[0];
+save();
+render();
+}
+
+
+function bulkDelete() {
+const currentItems = items.filter(i => i.folder === currentFolder);
+if (currentItems.length === 0) return alert("削除する番組がありません。");
+
+if (confirm(`「${currentFolder}」内の全${currentItems.length}件を削除しますか？`)) {
+items = items.filter(i => i.folder !== currentFolder);
+save();
+render();
+}
+}
+
+
+// 【修正】新規追加時はcheckedを強制false
+function addItem(){
+let title=document.getElementById("title").value.trim();
+let date=document.getElementById("date").value;
+let ch=document.getElementById("ch").value;
+let time=document.getElementById("time").value;
+let mode=document.getElementById("mode").value;
+let sizeVal=document.getElementById("size").value;
+let size=parseFloat(sizeVal);
+
+if(!title || sizeVal === "" || isNaN(size)) {
+alert("「タイトル」と「容量」は必ず入力してください。");
+return;
+}
+
+items.push({title,date,ch,time,mode,size,checked:false,folder:currentFolder});
+
+document.getElementById("title").value = "";
+document.getElementById("size").value = "";
+
+save();
+render();
+}
+
+// 【追加】全アイテムのチェックを一括解除
+function allUncheck() {
+if(!confirm("すべてのチェックを外しますか？")) return;
+items.forEach(item => item.checked = false);
+save();
+render();
+}
+
+
+function handleDragStart(e, index) {
+if (index === 0) { e.preventDefault(); return; }
+dragStartIndex = index;
+e.currentTarget.classList.add("dragging");
+}
+
+function handleDragOver(e, index) {
+e.preventDefault();
+if (index === 0 || dragStartIndex === null || dragStartIndex === index) return;
+
+const folderToMove = folders[dragStartIndex];
+folders.splice(dragStartIndex, 1);
+folders.splice(index, 0, folderToMove);
+dragStartIndex = index;
+save();
+renderFolderTabs();
+}
+
+function handleDragEnd(e) {
+e.currentTarget.classList.remove("dragging");
+dragStartIndex = null;
+render();
+}
+
+
+function updateDatalists() {
+const fields = {
+titleOptions: "title",
+chOptions: "ch",
+modeOptions: "mode"
+};
+
+for (const [listId, key] of Object.entries(fields)) {
+const datalist = document.getElementById(listId);
+if(!datalist) continue;
+const uniqueValues = [...new Set(items.map(item => item[key]))].filter(v => v);
+datalist.innerHTML = uniqueValues.map(v => `<option value="${v}">`).join("");
+}
+}
+
+
+function renderFolderTabs(){
+const tabs=document.getElementById("folderTabs");
+tabs.innerHTML="";
+
+folders.forEach((f, i)=>{
+let group = document.createElement("div");
+group.className = "folder-group";
+if(currentFolder===f) group.classList.add("active");
+
+if(f === "未分類") {
+group.classList.add("fixed");
+} else {
+group.draggable = true;
+group.ondragstart = (e) => handleDragStart(e, i);
+group.ondragover = (e) => handleDragOver(e, i);
+group.ondragend = (e) => handleDragEnd(e);
+}
+
+let b=document.createElement("button");
+b.innerText=f;
+b.className = "tab-btn";
+group.onclick=()=>{
+currentFolder=f;
+render();
+};
+group.appendChild(b);
+
+tabs.appendChild(group);
+});
+
+if (currentFolder !== "未分類") {
+let delBtn = document.createElement("button");
+delBtn.innerText = "× フォルダ削除";
+delBtn.className = "delFolderBtn";
+delBtn.onclick = deleteCurrentFolder;
+tabs.appendChild(delBtn);
+}
+
+document.getElementById("addBtn").innerText = `「${currentFolder}」に追加`;
+}
+
+
+function changeFolder(folder, idx, newFolder){
+let count = 0;
+for(let item of items) {
+if(item.folder === folder) {
+if(count === idx) {
+item.folder = newFolder;
+break;
+}
+count++;
+}
+}
+save();
+render();
+}
+
+
+function render(){
+renderFolderTabs();
+updateDatalists();
+
+const list=document.getElementById("listContainer");
+list.innerHTML="";
+
+folders.forEach(f=>{
+let div=document.createElement("div");
+div.style.display=currentFolder===f?"block":"none";
+
+let currentItems = items.filter(item => item.folder === f);
+
+currentItems.forEach((item,idx)=>{
+let card=document.createElement("div");
+card.className="card";
+card.innerHTML=`
+<div class="left">
+<input type="checkbox"
+${item.checked?"checked":""}
+onchange="toggleItemInFolder('${f}', ${idx})">
+<div class="program">
+<span>${item.title}</span>
+<span style="font-size: 0.85em; color: #666;">
+${item.date} / ${item.ch} / ${item.time} / ${item.mode} / ${item.size}GB
+</span>
+</div>
+</div>
+<div class="controls">
+<button onclick="copyItemInFolder('${f}', ${idx})">複製</button>
+<button onclick="deleteItemInFolder('${f}', ${idx})" style="background:#888;">削除</button>
+<select onchange="changeFolder('${f}', ${idx}, this.value)">
+${folders.map(folder=>`
+<option value="${folder}" ${folder===item.folder?"selected":""}>
+${folder}
+</option>`).join("")}
+</select>
+</div>
+`;
+div.appendChild(card);
+});
+list.appendChild(div);
+});
+
+updateBar();
+}
+
+
+function toggleItemInFolder(folder, idx) {
+let count = 0;
+for(let item of items) {
+if(item.folder === folder) {
+if(count === idx) { item.checked = !item.checked; break; }
+count++;
+}
+}
+save();
+updateBar();
+}
+
+// 【修正】複製時もcheckedを強制false
+function copyItemInFolder(folder, idx) {
+let count = 0;
+for(let item of items) {
+if(item.folder === folder) {
+if(count === idx) { 
+items.push({...item, checked:false}); 
+break; 
+}
+count++;
+}
+}
+save();
+render();
+}
+
+function deleteItemInFolder(folder, idx) {
+if(!confirm("削除しますか？")) return;
+let count = 0;
+for(let i=0; i<items.length; i++) {
+if(items[i].folder === folder) {
+if(count === idx) { items.splice(i, 1); break; }
+count++;
+}
+}
+save();
+render();
+}
+
+
+function updateBar(){
+let total=items
+.filter(i=>i.checked)
+.reduce((a,b)=>a+b.size,0);
+
+let capacity=parseFloat(document.getElementById("capacity").value) || 25;
+let percent=Math.min((total/capacity)*100,100);
+
+const fill = document.getElementById("fill");
+fill.style.width=percent+"%";
+
+if(percent >= 100) fill.style.background = "#f44336";
+else if(percent > 90) fill.style.background = "#ff9800";
+else fill.style.background = "#4caf50";
+
+const marks = document.getElementById("marks");
+marks.innerHTML = "";
+const step = 5;
+const numMarks = Math.floor(capacity / step);
+
+for (let i = 1; i <= numMarks; i++) {
+let mark = document.createElement("div");
+mark.style.position = "absolute";
+mark.style.left = (i * step / capacity * 100) + "%";
+mark.style.width = "1px";
+mark.style.height = "100%";
+mark.style.background = "rgba(0,0,0,0.15)"; 
+marks.appendChild(mark);
+}
+
+document.getElementById("capacityText").innerHTML=
+`<b>${total.toFixed(1)}</b> / ${capacity} GB (残り ${(capacity - total).toFixed(1)} GB)`;
+}
+
+render();
+
+</script>
+
+</body>
+</html>
